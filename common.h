@@ -89,6 +89,7 @@ using namespace DFHack::Simple;
 // Height of area copied from an image file
 // may be different to tile dimensions to allow overlap later
 #define SPRITEHEIGHT (TILEHEIGHT + WALLHEIGHT)
+#define FULLSPRITEHEIGHT (SPRITEHEIGHT + FLOORHEIGHT)
 #define WALL_CUTOFF_HEIGHT 15
 
 #define DEFAULT_SEGMENTSIZE 20

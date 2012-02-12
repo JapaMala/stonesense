@@ -16,6 +16,7 @@ using namespace std;
 #include "GroundMaterialConfiguration.h"
 #include "ContentLoader.h"
 #include "Occlusion_Test.h"
+#include "SpriteAtlas.h"
 
 #define WIDTH        640
 #define HEIGHT       480
@@ -63,6 +64,8 @@ DFHack::Console * DFConsole;
 ALLEGRO_THREAD *thread;
 
 bool redraw = true;
+
+c_sprite_atlas * Sprite_Atlas;
 
 /*int32_t viewx = 0;
 int32_t viewy = 0;
@@ -518,7 +521,13 @@ static void * stonesense_thread(ALLEGRO_THREAD * thred, void * parms)
 		stonesense_started = 0;
 		return NULL;
 	}
-
+	Sprite_Atlas = new c_sprite_atlas;
+	if(!Sprite_Atlas->create_atlas())
+	{
+		al_destroy_display(display);
+		stonesense_started = 0;
+		return NULL;
+	}
 	loadGraphicsFromDisk();
 	al_clear_to_color(al_map_rgb(0,0,0));
 	al_draw_textf(font, al_map_rgb(255,255,255), al_get_bitmap_width(al_get_target_bitmap())/2, al_get_bitmap_height(al_get_target_bitmap())/2, ALLEGRO_ALIGN_CENTRE, "Starting up...");
@@ -551,6 +560,9 @@ static void * stonesense_thread(ALLEGRO_THREAD * thred, void * parms)
 	timeToReloadSegment = true;
 
 	main_loop(display, queue, thred, c->con, c);
+
+	delete Sprite_Atlas;
+
 	al_destroy_display(display);
 
 	if(config.threadmade)

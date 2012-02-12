@@ -34,6 +34,7 @@ SET(PROJECT_SRCS
     GroundMaterialConfiguration.cpp
     MapLoading.cpp
     Occlusion_Test.cpp
+    SpriteAtlas.cpp
     SpriteColors.cpp
     SpriteMaps.cpp
     SpriteObjects.cpp

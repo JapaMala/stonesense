@@ -21,7 +21,7 @@ ALLEGRO_BITMAP *sprite_webing = 0;
 ALLEGRO_BITMAP *sprite_boiling = 0;
 ALLEGRO_BITMAP *sprite_oceanwave = 0;
 
-int randomCube[RANDOM_CUBE][RANDOM_CUBE][RANDOM_CUBE];
+unsigned int randomCube[RANDOM_CUBE][RANDOM_CUBE][RANDOM_CUBE];
 
 void initRandomCube()
 {
@@ -111,7 +111,6 @@ void Block::Draw()
 	}
 
 	bool defaultSnow = 1;
-	int sheetOffsetX, sheetOffsetY;
 	t_SpriteWithOffset sprite;
 	c_sprite* spriteobject;
 	/*if(config.hide_outer_blocks){
@@ -466,7 +465,6 @@ void Block::Draw()
 }
 
 void Block::Drawcreaturetext(){
-	int sheetOffsetX, sheetOffsetY;
 	t_SpriteWithOffset sprite;
 	/*if(config.hide_outer_blocks){
 	if(x == ownerSegment->x || x == ownerSegment->x + ownerSegment->sizex - 1) return;
