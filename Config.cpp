@@ -83,8 +83,8 @@ void parseConfigLine( string line )
         if(value < 1) {
             value = DEFAULT_SEGMENTSIZE;
         }
-        if(value > 100) {
-            value = 100;
+        if(value > 768) {
+            value = 768;
         }
         //plus 2 to allow edge readings
         ssState.SegmentSize.x = value+2;

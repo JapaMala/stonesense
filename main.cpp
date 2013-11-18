@@ -530,6 +530,7 @@ DFHACK_PLUGIN("stonesense");
 //This is the init command. it includes input options.
 DFhackCExport command_result plugin_init ( color_ostream &out, std::vector <PluginCommand> &commands)
 {
+    out.print("A stonesense tile takes up %d bytrs.\n", sizeof(Tile));
     commands.push_back(PluginCommand("stonesense","Start up the stonesense visualiser.",stonesense_command));
     commands.push_back(PluginCommand("ssense","Start up the stonesense visualiser.",stonesense_command));
     return CR_OK;

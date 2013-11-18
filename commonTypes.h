@@ -228,6 +228,10 @@ struct GameConfiguration {
 
     int zoom;
     float scale;
+
+
+    //spriteFactory stuff
+    int atlas_exponent;
 };
 
 struct GameState{

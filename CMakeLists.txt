@@ -27,6 +27,7 @@ SET(PROJECT_SRCS
     SegmentProcessing.cpp 
     OcclusionTest.cpp
     SpriteColors.cpp
+	SpriteFactory.cpp
     SpriteMaps.cpp
     SpriteObjects.cpp
     UserInput.cpp
