@@ -1,7 +1,7 @@
 PROJECT (stonesense)
 SET(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMake/Modules)
 
-include_directories (${CMAKE_SOURCE_DIR})
+include_directories (${CMAKE_SOURCE_DIR} ${stonesense_SOURCE_DIR})
 
 
 SET(PROJECT_SRCS
@@ -26,6 +26,7 @@ SET(PROJECT_SRCS
     GroundMaterialConfiguration.cpp
     ItemConfiguration.cpp
     MapLoading.cpp
+	WorldMap.cpp
     SegmentProcessing.cpp 
     OcclusionTest.cpp
     SpriteColors.cpp
@@ -35,6 +36,17 @@ SET(PROJECT_SRCS
     WorldSegment.cpp
     VegetationConfiguration.cpp
     Keybinds.cpp
+	#Is this the best way to do this?
+	UserConfig.cpp
+	#../isoworld/ColorList.cpp
+	c_imagelist.cpp
+	#../isoworld/MapSection.cpp
+	#../isoworld/c_minimap.cpp
+	c_tile.cpp
+	TileSet.cpp
+	#../isoworld/DetailedTile.cpp
+	#../isoworld/common.c
+	#../isoworld/console.cpp
     main.cpp
 )
 
@@ -134,6 +146,8 @@ ELSE(UNIX)
         allegro_font-static.lib
         allegro_image-static.lib
         allegro_ttf-static.lib
+		allegro_color-static.lib
+		allegro_dialog-static.lib
         freetype-static.lib
         winmm.lib
         psapi.lib

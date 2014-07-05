@@ -18,6 +18,9 @@ using namespace std;
 #include "GroundMaterialConfiguration.h"
 #include "ContentLoader.h"
 #include "OcclusionTest.h"
+#include "WorldMap.h"
+
+#include "df/ui_advmode.h"
 
 #define WIDTH        640
 #define HEIGHT       480
@@ -110,6 +113,31 @@ void PrintMessage(const char* msg, ...)
     va_end(arglist);
 }
 
+void log_printf(char const *msg, ...)
+{
+    va_list arglist;
+    va_start(arglist, msg);
+    char buf[512] = { 0 };
+    vsprintf(buf, msg, arglist);
+    Core::print(buf);
+    va_end(arglist);
+}
+
+void DisplayErr(const char *msg, ...)
+{
+    va_list arglist;
+    va_start(arglist, msg);
+    char buf[512] = { 0 };
+    vsprintf(buf, msg, arglist);
+    Core::printerr(buf);
+    FILE* fp = fopen("Stonesense.log", "a");
+    if (fp) {
+        vfprintf(fp, msg, arglist);
+    }
+    //	Core::printerr(msg, arglist);
+    va_end(arglist);
+    fclose(fp);
+}
 void LogVerbose(const char* msg, ...)
 {
     if (!ssConfig.verbose_logging) {
@@ -280,29 +308,50 @@ static void main_loop(ALLEGRO_DISPLAY * display, Overlay * ovrlay, ALLEGRO_EVENT
 					paintboard();
 					ovrlay->Flip();
 					animationFrameShown = true;
-				}
-			} else {
-				if(ssConfig.spriteIndexOverlay) {
-					DrawSpriteIndexOverlay(ssConfig.currentSpriteOverlay);
-					al_flip_display();
-				} else if(!Maps::IsValid()) {
-					drawcredits();
-					al_flip_display();
-				} else if( timeToReloadSegment ) {
-					reloadPosition();
-					al_clear_to_color(ssConfig.backcol);
-					paintboard();
-					al_flip_display();
-					timeToReloadSegment = false;
-					animationFrameShown = true;
-				} else if (animationFrameShown == false) {
-					al_clear_to_color(ssConfig.backcol);
-					paintboard();
-					al_flip_display();
-					animationFrameShown = true;
-				}
-			}
-			
+                }
+            }
+            else {
+                if (ssConfig.spriteIndexOverlay) {
+                    DrawSpriteIndexOverlay(ssConfig.currentSpriteOverlay);
+                    al_flip_display();
+                }
+                else if (df::global::world->world_data)
+                {
+                    bool adventure_map_open = false;
+                    if (df::global::ui_advmode)
+                    {
+                        adventure_map_open = (df::global::ui_advmode->menu == df::ui_advmode_menu::Travel);
+                    }
+                    if (Maps::IsValid() && !adventure_map_open)
+                    {
+                        if (timeToReloadSegment) {
+                            reloadPosition();
+                            al_clear_to_color(ssConfig.backcol);
+                            paintboard();
+                            al_flip_display();
+                            timeToReloadSegment = false;
+                            animationFrameShown = true;
+                        }
+                        else if (animationFrameShown == false) {
+                            al_clear_to_color(ssConfig.backcol);
+                            paintboard();
+                            al_flip_display();
+                            animationFrameShown = true;
+                        }
+                    }
+                    else
+                    {
+                        WorldMapPaintboard();
+                        al_flip_display();
+                    }
+                }
+                else
+                {
+                    drawcredits();
+                    al_flip_display();
+                }
+            }
+
 			if (!ssConfig.overlay_mode) {
 				doMouse();
 				doRepeatActions();

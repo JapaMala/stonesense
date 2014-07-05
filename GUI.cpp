@@ -43,8 +43,6 @@ using namespace std;
 #include "df/caste_raw.h"
 #include "df/tissue_style_raw.h"
 
-#include "df/viewscreen_dungeonmodest.h"
-#include "df/viewscreen_dungeon_wrestlest.h"
 #include "df/ui_advmode.h"
 #include "df/report.h"
 #include "df/region_map_entry.h"
@@ -558,8 +556,8 @@ void drawAdvmodeMenu(const ALLEGRO_FONT * font, int x, int y)
     case ui_advmode_menu::Talk:
         drawAdvmodeMenuTalk(font, x, y);
         break;
-    case ui_advmode_menu::Travel:
-        drawAdvmodeMenuMap(x, y);
+    //case ui_advmode_menu::Travel:
+    //    drawAdvmodeMenuMap(x, y);
     default:
         break;
     }
