@@ -1,8 +1,5 @@
 #include "WorldMap.h"
 
-#include "UserConfig.h"
-#include "c_imagelist.h"
-#include "s_map_block.h"
 
 #include "df/coord2d.h"
 #include "df/world_data.h" 
@@ -13,25 +10,122 @@
 
 #include "GUI.h"
 
-UserConfig user_config;
+#include "modules\Units.h"
+#include "modules\Maps.h"
 
-c_imagelist imagelist;
-
-bool inited = false;
-
-terrain_type GetTerrainType(int elevation, int rain, int drain, int temp)
+void WorldMap::load_tilesets(const char * index_file)
 {
+    ALLEGRO_CONFIG * config = 0;
+
+    ALLEGRO_PATH * key = al_create_path(index_file);
+
+    config = al_load_config_file(al_path_cstr(key, ALLEGRO_NATIVE_PATH_SEP));
+
+    int num_tilesets = get_config_int(config, "TILESETS", "num_tilesets");
+
+    char buffer[256];
+    for (size_t i = 0; i < num_tilesets; i++)
+    {
+        sprintf(buffer, "tileset_%d", i);
+        const char * file = al_get_config_value(config, "TILESETS", buffer);
+        if (file)
+        {
+            ALLEGRO_PATH * temp = al_create_path(file);
+            al_rebase_path(key, temp);
+            TileSet temp_tileset;
+            temp_tileset.load_ini(temp);
+            tileset_list.push_back(temp_tileset);
+            al_destroy_path(temp);
+        }
+    }
+    al_destroy_path(key);
+}
+
+terrain_type WorldMap::GetTerrainType(df::coord2d pos, df::world_data * data, int zoom)
+{
+    df::coord2d posRegion;
+    df::coord2d posEmbark;
+    df::coord2d posBlock;
+
+    posRegion = pos / 48;
+    posEmbark = pos / 3;
+    posBlock = pos;
+
+    if (posRegion.x < 0 || posRegion.y < 0 || posRegion.x >= data->world_width || posRegion.y >= data->world_height)
+        return terrain_type::TERRAIN_ANY;
+    else return GetTerrainType(&data->region_map[posRegion.x][posRegion.y]);
+}
+
+terrain_type WorldMap::GetTerrainType(df::region_map_entry * region)
+{
+    if (region->elevation <= 99)
+    {
+        return terrain_type::TERRAIN_OCEAN_TEMP;
+    }
+    else if (region->elevation <= 200)
+    {
+        return terrain_type::TERRAIN_GRASS_TEMP;
+    }
+    else
+    {
+        return terrain_type::TERRAIN_MOUNTAIN;
+    }
     return terrain_type::TERRAIN_ANY;
 }
 
-void WorldMapInit()
+void WorldMap::SetupMapSection()
+{
+    world_map_section.resize(ssState.Size.x);
+    for (int i = 0; i < ssState.Size.x; i++)
+    {
+        world_map_section[i].resize(ssState.Size.y);
+    }
+}
+
+s_map_block WorldMap::MakeBlock(df::coord2d pos, df::world_data * data, int zoom)
+{
+    s_map_block block;
+    df::coord2d posRegion;
+    df::coord2d posEmbark;
+    df::coord2d posBlock;
+
+    posRegion = pos / 48;
+    posEmbark = pos / 3;
+    posBlock = pos;
+
+    df::region_map_entry * region = &data->region_map[posRegion.x][posRegion.y];
+
+    block.terrain = GetTerrainType(pos, data, zoom);
+    block.height = region->elevation;
+
+
+    //*********//
+    block.sprite = tileset_list[0].get_tile(block);
+    return block;
+}
+
+void WorldMap::propogate_tiles(df::coord2d center, int zoom)
+{
+    for (int x = 0; x < world_map_section.size(); x++)
+    {
+        for (int y = 0; y < world_map_section[x].size(); y++)
+        {
+
+        }
+    }
+}
+
+void WorldMap::Init()
 {
     user_config.save_values();
     user_config.load_file();
     user_config.retrieve_values();
+
+    load_tilesets("isoworld/tilesets.ini");
+    inited = true;
 }
 
-void DrawRegionMap(df::coord2d center)
+void WorldMap::DrawRegionMap(df::coord2d center)
 {
     float x = ssState.ScreenW / 2.0f;
     float y = ssState.ScreenH / 2.0f;
@@ -79,7 +173,7 @@ void DrawRegionMap(df::coord2d center)
     //PrintMessage("%f - %f\n", min, max);
 
 }
-void DrawEmbarkTileMap(df::coord2d center)
+void WorldMap::DrawEmbarkTileMap(df::coord2d center)
 {
     float x = ssState.ScreenW / 2.0f;
     float y = ssState.ScreenH / 2.0f;
@@ -128,11 +222,11 @@ void DrawEmbarkTileMap(df::coord2d center)
 
 }
 
-void WorldMapPaintboard()
+void WorldMap::Paintboard()
 {
     if (!inited)
     {
-        WorldMapInit();
+        Init();
     }
     if (ssConfig.transparentScreenshots) {
         al_clear_to_color(al_map_rgba(0, 0, 0, 0));
@@ -147,7 +241,7 @@ void WorldMapPaintboard()
     center.x = data->adv_region_x;
     center.y = data->adv_region_y;
 
-    if (df::global::ui_advmode && df::global::ui_advmode->travel_not_moved)
+    if (DFHack::Maps::IsValid())
     {
         df::unit * adventurer = df::global::world->units.active[0];
         center.x = (df::global::world->map.region_x * 3) + adventurer->pos.x / 16;
@@ -156,12 +250,13 @@ void WorldMapPaintboard()
     }
     else
     {
-        center.x = data->travel[0]->pos.x;
-        center.y = data->travel[0]->pos.y;
+        //center.x = data->travel[0]->pos.x;
+        //center.y = data->travel[0]->pos.y;
     }
 
     DrawEmbarkTileMap(center);
+
     draw_textf_border(font, uiColor(1), 0, 0, 0,
-        "Adventurer Coords: %d, %d, %d", center.x, center.y, center.z);
+        "Possible Adventurer name:%s", df::global::world->units.active[0]->name.first_name.c_str());
 
 }

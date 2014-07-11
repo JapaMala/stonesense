@@ -62,6 +62,9 @@ ALLEGRO_EVENT event;
 
 ALLEGRO_BITMAP* IMGIcon;
 
+WorldMap world_map;
+c_imagelist imagelist;
+
 int mouse_x, mouse_y, mouse_z;
 unsigned int mouse_b;
 bool key[ALLEGRO_KEY_MAX];
@@ -341,7 +344,7 @@ static void main_loop(ALLEGRO_DISPLAY * display, Overlay * ovrlay, ALLEGRO_EVENT
                     }
                     else
                     {
-                        WorldMapPaintboard();
+                        world_map.Paintboard();
                         al_flip_display();
                     }
                 }

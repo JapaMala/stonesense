@@ -18,7 +18,6 @@ class TileSet
 {
 public:
 	TileSet(void);
-	~TileSet(void);
 
 	void load_ini(ALLEGRO_PATH * _path);
 
