@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Tile.h"
 
-extern SegmentWrap map_segment;
+#include "common.h"
+
+#include "Tile.h"
 
 enum draw_event_type{
     TintedScaledBitmap,
@@ -28,10 +29,10 @@ class WorldSegment
 {
 private:
     Tile* tiles;
-    vector<draw_event> todraw;
+    std::vector<draw_event> todraw;
     
-    vector<SS_Unit*> units;
-    vector<Buildings::t_building*> buildings;
+    std::vector<SS_Unit*> units;
+    std::vector<Buildings::t_building*> buildings;
 
 public:
     bool loaded;
@@ -111,6 +112,7 @@ public:
     void DrawAllTiles();
     //void drawPixels();
     bool CoordinateInsideSegment(int32_t x, int32_t y, int32_t z);
+    bool RangeInsideSegment(int32_t min_x, int32_t min_y, int32_t min_z, int32_t max_x, int32_t max_y, int32_t max_z);
     bool CoordinateInteriorSegment(int32_t x, int32_t y, int32_t z, uint32_t shellthick);
     void PushBuilding( Buildings::t_building * tempbuilding);
     void ClearBuildings();
@@ -177,3 +179,5 @@ private:
     WorldSegment * drawsegment;
     WorldSegment * readsegment;
 };
+
+extern SegmentWrap map_segment;

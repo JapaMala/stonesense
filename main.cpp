@@ -550,6 +550,7 @@ static void * stonesense_thread(ALLEGRO_THREAD * main_thread, void * parms)
     al_destroy_path(p);
     if(!IMGIcon) {
         al_destroy_display(display);
+		display = 0;
         stonesense_started = 0;
         return NULL;
     }
@@ -597,6 +598,7 @@ static void * stonesense_thread(ALLEGRO_THREAD * main_thread, void * parms)
 
     // window is destroyed.
     al_destroy_display(display);
+	display = 0;
 	delete(overlay);
 	overlay = NULL;
 
@@ -631,7 +633,14 @@ DFHACK_PLUGIN("stonesense");
 //This is the init command. it includes input options.
 DFhackCExport command_result plugin_init ( color_ostream &out, std::vector <PluginCommand> &commands)
 {
-	enabled = true;
+#ifdef _DARWIN
+    if (!df::global::init->display.flag.is_set(init_display_flags::RENDER_2D))
+    {
+	out.printerr("stonesense: Only PRINT_MODE:2D is supported on OS X\n");
+	return CR_FAILURE;
+    }
+#endif
+    enabled = true;
     commands.push_back(PluginCommand("stonesense","Start up the stonesense visualiser.",stonesense_command));
     commands.push_back(PluginCommand("ssense","Start up the stonesense visualiser.",stonesense_command));
     return CR_OK;
@@ -671,7 +680,6 @@ DFhackCExport command_result stonesense_command(color_ostream &out, std::vector<
 		}
 	} 
 
-    stonesense_started = true;
     if(!al_is_system_installed()) {
         if (!al_init()) {
             out.printerr("Could not init Allegro.\n");
@@ -693,7 +701,8 @@ DFhackCExport command_result stonesense_command(color_ostream &out, std::vector<
         }
     }
 
-    stonesense_event_thread = al_create_thread(stonesense_thread, (void*) &out);
+    stonesense_started = true;
+    stonesense_event_thread = al_create_thread(stonesense_thread, (void*)&out);
     al_start_thread(stonesense_event_thread);
     return CR_OK;
 }

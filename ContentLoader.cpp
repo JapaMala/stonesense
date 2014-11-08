@@ -4,6 +4,7 @@
 #include "ContentBuildingReader.h"
 #include "MapLoading.h"
 #include "ColorConfiguration.h"
+#include "TreeGrowthConfiguration.h"
 
 #include "tinyxml.h"
 #include "GUI.h"
@@ -25,6 +26,9 @@
 #include "df/entity_raw.h"
 #include "df/historical_entity.h"
 #include "df/entity_position.h"
+
+#include "ConnectionState.h"
+#include "EnumToString.h"
 
 void DumpStringVector(const char* filename, vector<std::string> * input)
 {
@@ -49,6 +53,9 @@ ContentLoader::~ContentLoader(void)
     flushItemConfig(itemConfigs);
     flushCreatureConfig();
     colorConfigs.clear();
+    materialColorConfigs.clear();
+    growthTopConfigs.clear();
+    growthBottomConfigs.clear();
 }
 
 bool ContentLoader::Load()
@@ -64,10 +71,83 @@ bool ContentLoader::Load()
     flushTerrainConfig(terrainWallConfigs);
     flushItemConfig(itemConfigs);
     colorConfigs.clear();
+    materialColorConfigs.clear();
+    growthTopConfigs.clear();
+    growthBottomConfigs.clear();
     flushCreatureConfig();
     treeConfigs.clear();
     shrubConfigs.clear();
     flushImgFiles();
+
+    //pull all the material names through the RPC stuff. Mostly a test at this point.
+    if (!connection_state)
+        connection_state = new ConnectionState();
+    connection_state->Connect();
+    if (connection_state)
+    {
+        connection_state->MaterialListCall(&(connection_state->empty_message), &materialNameList);
+        connection_state->GrowthListCall(&(connection_state->empty_message), &growthNameList);
+        connection_state->TiletypeListCall(&(connection_state->empty_message), &tiletypeNameList);
+        connection_state->Disconnect();
+    }
+
+    draw_loading_message("Reading Material Names");
+    remove("MatList.csv");
+    FILE* fp = fopen("MatList.csv", "a");
+    if (fp) {
+        fprintf(fp, "#;mat_type;mat_index;id;name;color\n");
+        for (int i = 0; i < materialNameList.material_list_size(); i++)
+        {
+            fprintf(fp, "%d;%d;%d;%s;%s;#%02X%02X%02X\n",
+                i,
+                materialNameList.material_list(i).mat_pair().mat_type(),
+                materialNameList.material_list(i).mat_pair().mat_index(),
+                materialNameList.material_list(i).id().c_str(),
+                materialNameList.material_list(i).name().c_str(),
+                materialNameList.material_list(i).state_color().red(),
+                materialNameList.material_list(i).state_color().green(),
+                materialNameList.material_list(i).state_color().blue());
+        }
+        fclose(fp);
+    }
+    draw_loading_message("Reading Growth Names");
+    remove("GrowthList.csv");
+    fp = fopen("GrowthList.csv", "a");
+    if (fp) {
+        fprintf(fp, "#;mat_type;mat_index;id;name;color\n");
+        for (int i = 0; i < growthNameList.material_list_size(); i++)
+        {
+            fprintf(fp, "%d;%d;%d;%s;%s;#%02X%02X%02X\n",
+                i,
+                growthNameList.material_list(i).mat_pair().mat_type(),
+                growthNameList.material_list(i).mat_pair().mat_index(),
+                growthNameList.material_list(i).id().c_str(),
+                growthNameList.material_list(i).name().c_str(),
+                growthNameList.material_list(i).state_color().red(),
+                growthNameList.material_list(i).state_color().green(),
+                growthNameList.material_list(i).state_color().blue());
+        }
+        fclose(fp);
+    }
+
+    draw_loading_message("Reading TileType Names");
+    remove("TiletypeList.csv");
+    fp = fopen("TiletypeList.csv", "a");
+    if (fp) {
+        fprintf(fp, "id;name;shape;special;material;variant\n");
+        for (int i = 0; i < tiletypeNameList.tiletype_list_size(); i++)
+        {
+            fprintf(fp, "%d;%s;%s;%s;%s;%s\n",
+                tiletypeNameList.tiletype_list(i).id(),
+                tiletypeNameList.tiletype_list(i).name().c_str(),
+                TiletypeShapeToString(tiletypeNameList.tiletype_list(i).shape()),
+                TiletypeSpecialToString(tiletypeNameList.tiletype_list(i).special()),
+                TiletypeMaterialToString(tiletypeNameList.tiletype_list(i).material()),
+                TiletypeVariantToString(tiletypeNameList.tiletype_list(i).variant())
+                );
+        }
+		fclose(fp);
+    }
 
     // This is an extra suspend/resume, but it only happens when reloading the config
     // ie not enough to worry about
@@ -82,7 +162,8 @@ bool ContentLoader::Load()
     } catch(exception &e) {
         LogError("DFhack exeption: %s\n", e.what());
     }
-    if(!ssConfig.skipCreatureTypes) {
+    draw_loading_message("Reading Creature Names");
+    if (!ssConfig.skipCreatureTypes) {
         try {
             Mats->ReadCreatureTypes();
         } catch(exception &e) {
@@ -98,7 +179,8 @@ bool ContentLoader::Load()
             ssConfig.skipCreatureTypesEx = true;
         }
     }
-    if(!ssConfig.skipDescriptorColors) {
+    draw_loading_message("Reading Color Descriptors");
+    if (!ssConfig.skipDescriptorColors) {
         try {
             Mats->ReadDescriptorColors();
         } catch(exception &e) {
@@ -106,19 +188,24 @@ bool ContentLoader::Load()
             ssConfig.skipDescriptorColors = true;
         }
     }
-    if(!ssConfig.skipInorganicMats) {
+    draw_loading_message("Reading Inorganic Materials");
+    if (!ssConfig.skipInorganicMats) {
         if(!Mats->CopyInorganicMaterials(this->inorganic)) {
             LogError("Missing inorganic materials!\n");
             ssConfig.skipInorganicMats = true;
         }
     }
-    if(!ssConfig.skipOrganicMats) {
+    draw_loading_message("Reading Organic Materials");
+    if (!ssConfig.skipOrganicMats) {
         if(!Mats->CopyOrganicMaterials(this->organic)) {
             LogError("Missing organic materials!\n");
             ssConfig.skipOrganicMats = true;
         }
     }
+    draw_loading_message("Reading Custom Workshop Types");
     Buildings::ReadCustomWorkshopTypes(custom_workshop_types);
+    draw_loading_message("Reading Professions");
+
     if(professionStrings.empty()) {
         FOR_ENUM_ITEMS(profession, i) {
             if(i<0) {
@@ -207,6 +294,7 @@ bool ContentLoader::Load()
         }
     }
     //DumpStringVector("professiondump.txt", &professionStrings);
+    draw_loading_message("Reading Hairstyles");
     gatherStyleIndices(&df::global::world->raws);
     /*
     if(classIdStrings.empty())
@@ -242,6 +330,9 @@ bool ContentLoader::reload_configs()
     flushTerrainConfig(terrainWallConfigs);
     flushItemConfig(itemConfigs);
     colorConfigs.clear();
+    materialColorConfigs.clear();
+    growthTopConfigs.clear();
+    growthBottomConfigs.clear();
     creatureConfigs.clear();
     treeConfigs.clear();
     shrubConfigs.clear();
@@ -371,28 +462,42 @@ bool ContentLoader::parseContentXMLFile( const char* filepath )
     bool runningResult = true;
     elemRoot = hDoc.FirstChildElement().Element();
     while( elemRoot ) {
+        draw_loading_message("Loading %s", getDocument(elemRoot));
         string elementType = elemRoot->Value();
         if( elementType.compare( "building" ) == 0 ) {
             runningResult &= parseBuildingContent( elemRoot );
-        } else if( elementType.compare( "creatures" ) == 0 ) {
+        }
+        else if( elementType.compare( "creatures" ) == 0 ) {
             runningResult &= parseCreatureContent( elemRoot );
-        } else if( elementType.compare( "floors" ) == 0 ) {
+        }
+        else if( elementType.compare( "floors" ) == 0 ) {
             runningResult &= parseTerrainContent( elemRoot );
-        } else if( elementType.compare( "walls" ) == 0 ) {
+        }
+        else if( elementType.compare( "walls" ) == 0 ) {
             runningResult &= parseTerrainContent( elemRoot );
-        } else if( elementType.compare( "shrubs" ) == 0 ) {
+        }
+        else if( elementType.compare( "shrubs" ) == 0 ) {
             runningResult &= parseShrubContent( elemRoot );
-        } else if( elementType.compare( "trees" ) == 0 ) {
+        }
+        else if( elementType.compare( "trees" ) == 0 ) {
             runningResult &= parseTreeContent( elemRoot );
-        } else if( elementType.compare( "grasses" ) == 0 ) {
+        }
+        else if( elementType.compare( "grasses" ) == 0 ) {
             runningResult &= parseGrassContent( elemRoot );
-        } else if( elementType.compare( "colors" ) == 0 ) {
+        }
+        else if( elementType.compare( "colors" ) == 0 ) {
             runningResult &= parseColorContent( elemRoot );
-        } else if( elementType.compare( "fluids" ) == 0 ) {
+        }
+        else if( elementType.compare( "fluids" ) == 0 ) {
             runningResult &= parseFluidContent( elemRoot );
-        } else if( elementType.compare( "items" ) == 0 ) {
+        }
+        else if( elementType.compare( "items" ) == 0 ) {
             runningResult &= parseItemContent( elemRoot );
-        } else {
+        }
+        else if (elementType.compare("growths") == 0) {
+            runningResult &= parseGrowthContent(elemRoot);
+        }
+        else {
             contentError("Unrecognised root element",elemRoot);
         }
 
@@ -431,6 +536,11 @@ bool ContentLoader::parseGrassContent(TiXmlElement* elemRoot )
 bool ContentLoader::parseTerrainContent(TiXmlElement* elemRoot )
 {
     return addSingleTerrainConfig( elemRoot );
+}
+
+bool ContentLoader::parseGrowthContent(TiXmlElement* elemRoot)
+{
+    return addSingleGrowthConfig(elemRoot);
 }
 
 bool ContentLoader::parseColorContent(TiXmlElement* elemRoot )
@@ -622,7 +732,8 @@ const char *lookupMaterialName(int matType,int matIndex)
         } else {
             return NULL;
         }
-    } else if ((matType == WOOD) && (!ssConfig.skipOrganicMats)) {
+    }
+    else if (((matType == WOOD) || (matType == PLANT)) && (!ssConfig.skipOrganicMats)) {
         typeVector=&(contentLoader->organic);
     } else if ((matType == PLANTCLOTH) && (!ssConfig.skipOrganicMats)) {
         typeVector=&(contentLoader->organic);
@@ -859,38 +970,46 @@ ALLEGRO_COLOR lookupMaterialColor(int matType, int matIndex, ALLEGRO_COLOR defau
 
 ALLEGRO_COLOR lookupMaterialColor(int matType, int matIndex, int dyeType, int dyeIndex, ALLEGRO_COLOR defaultColor)
 {
+    ALLEGRO_COLOR dyeColor = al_map_rgb(255,255,255);
+    MaterialInfo dye;
+    if (dyeType >= 0 && dyeIndex >= 0 && dye.decode(dyeType, dyeIndex))
+        dyeColor = al_map_rgb_f(
+        contentLoader->Mats->color[dye.material->powder_dye].red,
+        contentLoader->Mats->color[dye.material->powder_dye].green,
+        contentLoader->Mats->color[dye.material->powder_dye].blue);
+    t_matglossPair matPair;
+    matPair.index = matIndex;
+    matPair.type = matType;
+    if (ALLEGRO_COLOR * matResult = contentLoader->materialColorConfigs.get(matPair))
+    {
+        return *matResult * dyeColor;
+    }
     if (matType < 0) {
         //This should not normally happen, but if it does, we don't want crashes, so we'll return magic pink so show something's wrong.
-        return al_map_rgb(255, 0, 255);
+        return al_map_rgb(255, 0, 255) * dyeColor;
     }
     if (matType >= contentLoader->colorConfigs.size()) {
         //if it's more than the size of our colorconfigs, then just make a guess based off what DF tells us.
         goto DFColor;
     }
     if (matIndex < 0) {
-        return contentLoader->colorConfigs.at(matType).color;
+        return contentLoader->colorConfigs.at(matType).color * dyeColor;
     }
     if (matIndex >= contentLoader->colorConfigs.at(matType).colorMaterials.size()) {
         goto DFColor;
     }
     if (contentLoader->colorConfigs.at(matType).colorMaterials.at(matIndex).colorSet) {
-        return contentLoader->colorConfigs.at(matType).colorMaterials.at(matIndex).color;
+        return contentLoader->colorConfigs.at(matType).colorMaterials.at(matIndex).color * dyeColor;
     }
 DFColor:
-    MaterialInfo mat, dye;
+    MaterialInfo mat;
     if(mat.decode(matType, matIndex)) {
-        if(dyeType>=0 && dyeIndex>=0 && dye.decode(dyeType, dyeIndex))
-            return al_map_rgb_f(
-                       contentLoader->Mats->color[dye.material->powder_dye].red	* contentLoader->Mats->color[mat.material->state_color[0]].red,
-                       contentLoader->Mats->color[dye.material->powder_dye].green	* contentLoader->Mats->color[mat.material->state_color[0]].green,
-                       contentLoader->Mats->color[dye.material->powder_dye].blue	* contentLoader->Mats->color[mat.material->state_color[0]].blue);
-        else
             return al_map_rgb_f(
                        contentLoader->Mats->color[mat.material->state_color[0]].red,
                        contentLoader->Mats->color[mat.material->state_color[0]].green,
-                       contentLoader->Mats->color[mat.material->state_color[0]].blue);
+                       contentLoader->Mats->color[mat.material->state_color[0]].blue) * dyeColor;
     } 
-    return defaultColor;
+    return defaultColor * dyeColor;
 }
 
 ShadeBy getShadeType(const char* Input)
@@ -949,8 +1068,14 @@ ShadeBy getShadeType(const char* Input)
     if( strcmp(Input, "equipment") == 0) {
         return ShadeEquip;
     }
-    if( strcmp(Input, "item") == 0) {
+    if (strcmp(Input, "item") == 0) {
         return ShadeItem;
+    }
+    if (strcmp(Input, "wood") == 0) {
+        return ShadeWood;
+    }
+    if (strcmp(Input, "growth") == 0) {
+        return ShadeGrowth;
     }
     return ShadeNone;
 }

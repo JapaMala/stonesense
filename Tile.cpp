@@ -8,6 +8,8 @@
 #include "SpriteColors.h"
 #include "TileTypes.h"
 #include "df/building_type.h"
+#include "df/plant_growth.h"
+#include "df/plant_growth_print.h"
 
 ALLEGRO_BITMAP *sprite_miasma = 0;
 ALLEGRO_BITMAP *sprite_water = 0;
@@ -21,6 +23,19 @@ ALLEGRO_BITMAP *sprite_fire = 0;
 ALLEGRO_BITMAP *sprite_webing = 0;
 ALLEGRO_BITMAP *sprite_boiling = 0;
 ALLEGRO_BITMAP *sprite_oceanwave = 0;
+
+enum growth_locations
+{
+    LOCATION_NONE = -1,
+    LOCATION_TWIGS = 0,
+    LOCATION_LIGHT_BRANCHES,
+    LOCATION_HEAVY_BRANCHES,
+    LOCATION_TRUNK,
+    LOCATION_ROOTS,
+    LOCATION_CAP,
+    LOCATION_SAPLING,
+    LOCATION_SHRUB
+};
 
 int randomCube[RANDOM_CUBE][RANDOM_CUBE][RANDOM_CUBE];
 
@@ -189,6 +204,80 @@ void Tile::GetDrawLocation(int32_t& drawx, int32_t& drawy)
     drawx -= (TILEWIDTH>>1)*ssConfig.scale;
 }
 
+void Tile::DrawGrowth(c_sprite * spriteobject, bool top=true)
+{
+    //Draw Growths that appear over branches
+    if (tileMaterial() == RemoteFortressReader::ROOT
+        || tileMaterial() == RemoteFortressReader::TREE_MATERIAL
+        || tileMaterial() == RemoteFortressReader::MUSHROOM)
+    {
+        df::plant_raw* plantRaw = df::global::world->raws.plants.all[tree.index];
+        for (int i = 0; i < plantRaw->growths.size(); i++)
+        {
+            df::plant_growth * growth = plantRaw->growths[i];
+            if (!growth->locations.whole)
+                continue; //we need at least one location.
+            int32_t time = *df::global::cur_year_tick;
+            if (growth->timing_1 >= 0 && growth->timing_1 > time)
+                continue;
+            if (growth->timing_2 >= 0 && growth->timing_2 < time)
+                continue;
+            growth_locations loca = LOCATION_NONE;
+            if (growth->locations.bits.cap && tileMaterial() == RemoteFortressReader::MUSHROOM)
+                loca = LOCATION_CAP;
+            if (growth->locations.bits.heavy_branches && (tileSpecial() == RemoteFortressReader::BRANCH && tileType != df::tiletype::TreeBranches))
+                loca = LOCATION_HEAVY_BRANCHES;
+            if (growth->locations.bits.roots && tileMaterial() == RemoteFortressReader::ROOT)
+                loca = LOCATION_ROOTS;
+            if (growth->locations.bits.light_branches && tileType == df::tiletype::TreeBranches)
+                loca = LOCATION_LIGHT_BRANCHES;
+            if (growth->locations.bits.sapling && tileMaterial() == RemoteFortressReader::SAPLING)
+                loca = LOCATION_SAPLING;
+            if (growth->locations.bits.trunk && tileShape() == RemoteFortressReader::WALL)
+                loca = LOCATION_TRUNK;
+            if (growth->locations.bits.twigs && tileShape() == RemoteFortressReader::TWIG)
+                loca = LOCATION_TWIGS;
+
+            if (loca == LOCATION_NONE)
+                continue;
+
+            DFHack::t_matglossPair fakeMat;
+            fakeMat.index = tree.index;
+            fakeMat.type = i * 10 + loca;
+            if (top)
+                spriteobject = contentLoader->growthTopConfigs.get(fakeMat);
+            else
+                spriteobject = contentLoader->growthBottomConfigs.get(fakeMat);
+
+            if (spriteobject)
+            {
+                DFHack::t_matglossPair growthMat;
+                growthMat.index = growth->mat_index;
+                growthMat.type = growth->mat_type;
+                ALLEGRO_COLOR growCol = lookupMaterialColor(growthMat);
+                if (growth->prints.size() > 1)
+                {
+                    df::plant_growth_print * basePrint = growth->prints[0];
+                    df::plant_growth_print * currentPrint = basePrint;
+                    for (int k = 0; k < growth->prints.size(); k++)
+                    {
+                        if (growth->prints[k]->timing_start >= 0 && growth->prints[k]->timing_start > time)
+                            continue;
+                        if (growth->prints[k]->timing_end >= 0 && growth->prints[k]->timing_end < time)
+                            continue;
+                        currentPrint = growth->prints[k];
+                    }
+                    growCol = morph_color(growCol,
+                        ssConfig.colors.getDfColor(basePrint->color[0], basePrint->color[2], ssConfig.useDfColors),
+                        ssConfig.colors.getDfColor(currentPrint->color[0], currentPrint->color[2], ssConfig.useDfColors));
+                }
+                spriteobject->set_growthColor(growCol);
+                spriteobject->assemble_world(x, y, z, this);
+            }
+        }
+    }
+}
+
 void Tile::AssembleTile( void )
 {
 
@@ -202,7 +291,7 @@ void Tile::AssembleTile( void )
 
     bool defaultSnow = 1;
     t_SpriteWithOffset sprite;
-    c_sprite* spriteobject;
+    c_sprite* spriteobject = 0;
 
 	int32_t drawx = 0;
 	int32_t drawy = 0;
@@ -235,6 +324,8 @@ void Tile::AssembleTile( void )
 	ALLEGRO_COLOR plateBorderColor = al_map_rgb(85,85,85);
 	int rando = randomCube[x%RANDOM_CUBE][y%RANDOM_CUBE][z%RANDOM_CUBE];
 
+    DrawGrowth(spriteobject, false);
+
 
 	//Draw Ramp Tops
 	if(tileType == tiletype::RampTop){
@@ -263,10 +354,11 @@ void Tile::AssembleTile( void )
     if( tileShapeBasic()==tiletype_shape_basic::Floor ||
             tileShapeBasic()==tiletype_shape_basic::Wall ||
             tileShapeBasic()==tiletype_shape_basic::Ramp ||
-            tileShapeBasic()==tiletype_shape_basic::Stair) {
+            tileShapeBasic()==tiletype_shape_basic::Stair ||
+            tileShape()==RemoteFortressReader::TWIG) {
 
         //If plate has no floor, look for a Filler Floor from it's wall
-        if (tileShapeBasic()==tiletype_shape_basic::Floor) {
+        if (tileShapeBasic() == tiletype_shape_basic::Floor || tileShape() == RemoteFortressReader::TWIG) {
             spriteobject = GetFloorSpriteMap(tileType, this->material, consForm);
         } else if (tileShapeBasic()==tiletype_shape_basic::Wall) {
             spriteobject = GetFloorSpriteMap(tileType, this->material, consForm);
@@ -461,7 +553,7 @@ void Tile::AssembleTile( void )
         }
     }
 
-
+    DrawGrowth(spriteobject, true);
     if(designation.bits.flow_size > 0) {
         //if(waterlevel == 7) waterlevel--;
         uint32_t waterlevel = designation.bits.flow_size + (deepwater ? 1 : 0);
@@ -738,3 +830,17 @@ void Tile::AssembleFloorBlood ( int32_t drawx, int32_t drawy )
     }
 }
 
+RemoteFortressReader::TiletypeShape Tile::tileShape()
+{
+    return contentLoader->tiletypeNameList.tiletype_list(tileType).shape();
+}
+
+RemoteFortressReader::TiletypeSpecial Tile::tileSpecial()
+{
+    return contentLoader->tiletypeNameList.tiletype_list(tileType).special();
+}
+
+RemoteFortressReader::TiletypeMaterial Tile::tileMaterial()
+{
+    return contentLoader->tiletypeNameList.tiletype_list(tileType).material();
+}

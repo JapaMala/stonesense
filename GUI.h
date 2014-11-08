@@ -29,6 +29,8 @@ void saveMegashot(bool tall);
 void dumpSegment();
 void saveImage(ALLEGRO_BITMAP* image);
 
+void draw_loading_message(const char *format, ...);
+
 extern int MiniMapTopLeftX;
 extern int MiniMapTopLeftY;
 extern int MiniMapBottomRightX;
@@ -52,3 +54,5 @@ extern ALLEGRO_BITMAP* IMGLetterSheet;
 extern vector<string*> IMGFilenames;
 
 void swapSegments(void);
+
+ALLEGRO_COLOR morph_color(ALLEGRO_COLOR source, ALLEGRO_COLOR reference, ALLEGRO_COLOR target);

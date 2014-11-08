@@ -3,6 +3,7 @@
 #include "common.h"
 #include "SpriteObjects.h"
 #include "TileTree.h"
+#include "RemoteFortressReader.pb.h"
 
 enum enumFloorSprites {
     SPRITEFLOOR_NA = 0,
@@ -15,7 +16,7 @@ enum enumFloorSprites {
 enum enumObjectSprites {
     SPRITEOBJECT_NA = 0,
     SPRITEOBJECT_BLACK = 1,
-    SPRITEOBJECT_BLANK = 1,
+    SPRITEOBJECT_BLANK = 2,
 
     SPRITEOBJECT_TREE_OK = 40,
     SPRITEOBJECT_TREE_DEAD = 43,
@@ -66,5 +67,5 @@ enum TileIDs {
 // or one with sheetIndex == INVALID_INDEX if none found
 c_sprite * GetTileSpriteMap(int in, t_matglossPair material, uint16_t form);
 c_sprite * GetFloorSpriteMap(int in, t_matglossPair material, uint16_t form);
-c_tile_tree * GetTreeVegetation( df::tiletype_shape shape, df::tiletype_special special, int index);
+c_tile_tree * GetTreeVegetation(RemoteFortressReader::TiletypeShape shape, RemoteFortressReader::TiletypeSpecial special, int index);
 
