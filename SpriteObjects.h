@@ -33,8 +33,8 @@ enum offset_type : uint8_t {
     VARIATIONS, //random variations
     ANIMATION, //(unused but planned)
     FOUR, //four cardinal directions
-	SIXTEEN, //sixteeen cardinal directions
-	ROTATION //The sprite rotates with the viewport, but is otherwise uneffected by the underlying terrain.
+    SIXTEEN, //sixteeen cardinal directions
+    ROTATION //The sprite rotates with the viewport, but is otherwise uneffected by the underlying terrain.
 };
 
 
@@ -55,12 +55,12 @@ private:
     std::vector<c_sprite> subsprites;
     ALLEGRO_COLOR shadecolor;
     ALLEGRO_COLOR namedcolor;
-	int32_t caste_bodypart_index;
+    int32_t caste_bodypart_index;
     hairtypes hairtype;
     int16_t hairmin;
     int16_t hairmax;
     hairstyles hairstyle;
-	uint8_t pattern_index;
+    uint8_t pattern_index;
 
     offset_type offsettype;
     uint8_t offsetcode;
@@ -124,7 +124,9 @@ private:
     int itemtype;
     int itemsubtype;
     int itemmat;
+    ALLEGRO_COLOR growthColor;
 public:
+    void set_growthColor(ALLEGRO_COLOR color);
     c_sprite(void);
     ~c_sprite(void);
     //void draw_screen(int x, int y);

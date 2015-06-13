@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Tile.h"
 
-extern SegmentWrap map_segment;
+#include "common.h"
+
+#include "Tile.h"
 
 enum draw_event_type{
     TintedScaledBitmap,
@@ -28,10 +29,10 @@ class WorldSegment
 {
 private:
     Tile* tiles;
-    vector<draw_event> todraw;
-    
-    vector<SS_Unit*> units;
-    vector<Buildings::t_building*> buildings;
+    std::vector<draw_event> todraw;
+
+    std::vector<SS_Unit*> units;
+    std::vector<Buildings::t_building*> buildings;
 
 public:
     bool loaded;
@@ -40,20 +41,20 @@ public:
     GameState segState;
     WorldSegment(GameState inState) {
         segState = inState;
-		segState.Position.z = segState.Position.z - segState.Size.z + 1;
+        segState.Position.z = segState.Position.z - segState.Size.z + 1;
 
-        
+
         uint32_t newNumTiles = inState.Size.x * inState.Size.y * inState.Size.z;
         uint32_t memoryNeeded = newNumTiles * sizeof(Tile);
-		tiles = (Tile*) malloc( memoryNeeded );
+        tiles = (Tile*) malloc( memoryNeeded );
         memset(tiles, 0, memoryNeeded);
     }
 
     ~WorldSegment() {
-		uint32_t num = getNumTiles();
-		for(uint32_t i = 0; i < num; i++) {
-			Tile::InvalidateAndDestroy(& tiles[i]);
-		}
+        uint32_t num = getNumTiles();
+        for(uint32_t i = 0; i < num; i++) {
+            Tile::InvalidateAndDestroy(& tiles[i]);
+        }
         ClearBuildings();
         ClearUnits();
         free(tiles);
@@ -63,9 +64,9 @@ public:
         //clear and free old data
         ClearBuildings();
         ClearUnits();
-        todraw.clear();          
+        todraw.clear();
         for(uint32_t i = 0; i < getNumTiles(); i++) {
-			Tile::InvalidateAndDestroy(& tiles[i]);
+            Tile::InvalidateAndDestroy(& tiles[i]);
         }
 
         uint32_t newNumTiles = inState.Size.x * inState.Size.y * inState.Size.z;
@@ -74,7 +75,7 @@ public:
         if(hard || newNumTiles != getNumTiles()) {
             free(tiles);
             tiles = (Tile*) malloc( memoryNeeded );
-            
+
             //on a hard reset, zero out the entire array
             if(hard) {
                 memset(tiles, 0, memoryNeeded);
@@ -87,21 +88,21 @@ public:
         }
 
         segState = inState;
-		segState.Position.z = segState.Position.z - segState.Size.z + 1;
+        segState.Position.z = segState.Position.z - segState.Size.z + 1;
     }
 
     inline uint32_t getNumTiles() {
         return segState.Size.x * segState.Size.y * segState.Size.z;
     }
-    
+
     Tile* ResetTile(int32_t x, int32_t y, int32_t z, df::tiletype type=tiletype::OpenSpace);
     Tile* getTile(int32_t x, int32_t y, int32_t z);
     Tile* getTileLocal(int32_t x, int32_t y, int32_t z);
     Tile* getTileRelativeTo(int32_t x, int32_t y, int32_t z,  dirRelative direction);
     Tile* getTileRelativeTo(int32_t x, int32_t y, int32_t z,  dirRelative direction, int distance);
     Tile* getTile(uint32_t index);
-	bool ConvertToSegmentLocal(int32_t & x, int32_t & y, int32_t & z);
-	uint32_t ConvertLocalToIndex(int32_t x, int32_t y, int32_t z);
+    bool ConvertToSegmentLocal(int32_t & x, int32_t & y, int32_t & z);
+    uint32_t ConvertLocalToIndex(int32_t x, int32_t y, int32_t z);
     void CorrectTileForSegmentOffset(int32_t& x, int32_t& y, int32_t& z);
     void CorrectTileForSegmentRotation(int32_t& x, int32_t& y, int32_t& z);
     //void addTile(Tile* b);
@@ -111,6 +112,7 @@ public:
     void DrawAllTiles();
     //void drawPixels();
     bool CoordinateInsideSegment(int32_t x, int32_t y, int32_t z);
+    bool RangeInsideSegment(int32_t min_x, int32_t min_y, int32_t min_z, int32_t max_x, int32_t max_y, int32_t max_z);
     bool CoordinateInteriorSegment(int32_t x, int32_t y, int32_t z, uint32_t shellthick);
     void PushBuilding( Buildings::t_building * tempbuilding);
     void ClearBuildings();
@@ -122,7 +124,7 @@ public:
 class SegmentWrap
 {
 private:
-	static const GameState zeroState;
+    static const GameState zeroState;
 public:
     SegmentWrap() {
         drawsegment = new WorldSegment(zeroState);
@@ -177,3 +179,5 @@ private:
     WorldSegment * drawsegment;
     WorldSegment * readsegment;
 };
+
+extern SegmentWrap map_segment;

@@ -3,7 +3,7 @@
 #include "common.h"
 
 void ScreenToPoint(int x,int y,int &x1, int &y1, int &z1);
-void pointToScreen(int *inx, int *iny, int inz); 
+void pointToScreen(int *inx, int *iny, int inz);
 void correctTileForDisplayedOffset(int32_t&, int32_t&, int32_t&);
 void correctForRotation(int32_t& x, int32_t& y, unsigned char rot, int32_t szx, int32_t szy);
 Crd2D WorldTileToScreen(int32_t x, int32_t y, int32_t z);
@@ -29,6 +29,8 @@ void saveMegashot(bool tall);
 void dumpSegment();
 void saveImage(ALLEGRO_BITMAP* image);
 
+void draw_loading_message(const char *format, ...);
+
 extern int MiniMapTopLeftX;
 extern int MiniMapTopLeftY;
 extern int MiniMapBottomRightX;
@@ -52,3 +54,5 @@ extern ALLEGRO_BITMAP* IMGLetterSheet;
 extern vector<string*> IMGFilenames;
 
 void swapSegments(void);
+
+ALLEGRO_COLOR morph_color(ALLEGRO_COLOR source, ALLEGRO_COLOR reference, ALLEGRO_COLOR target);

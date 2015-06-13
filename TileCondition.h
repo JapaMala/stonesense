@@ -66,7 +66,7 @@ public:
 
     int value;
     int subtype;
-	int item_index;
+    int item_index;
     bool Matches(Tile* b);
 };
 
@@ -150,7 +150,7 @@ public:
     AndConditionalNode() {};
     ~AndConditionalNode(void);
 
-    vector<TileCondition*> children;
+    std::vector<TileCondition*> children;
 
     bool Matches(Tile* b);
     bool addCondition(TileCondition* cond);
@@ -162,7 +162,7 @@ public:
     OrConditionalNode() {};
     ~OrConditionalNode(void);
 
-    vector<TileCondition*> children;
+    std::vector<TileCondition*> children;
 
     bool Matches(Tile* b);
     bool addCondition(TileCondition* cond);

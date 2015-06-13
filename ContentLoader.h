@@ -8,6 +8,7 @@
 #include "commonTypes.h"
 #include "FluidConfiguration.h"
 #include "ItemConfiguration.h"
+#include "common.h"
 
 class ContentLoader
 {
@@ -17,6 +18,7 @@ private:
     bool parseBuildingContent( TiXmlElement* elemRoot );
     bool parseCreatureContent( TiXmlElement* elemRoot );
     bool parseTerrainContent ( TiXmlElement* elemRoot );
+    bool parseGrowthContent(TiXmlElement* elemRoot);
     bool parseTreeContent( TiXmlElement* elemRoot );
     bool parseShrubContent( TiXmlElement* elemRoot );
     bool parseColorContent( TiXmlElement* elemRoot );
@@ -27,7 +29,7 @@ private:
 
     bool translationComplete;
 
-    void gatherStyleIndices(df::world_raws * raws); 
+    void gatherStyleIndices(df::world_raws * raws);
 public:
     ContentLoader(void);
     ~ContentLoader(void);
@@ -36,23 +38,29 @@ public:
 
     bool reload_configs();
 
-    vector<BuildingConfiguration> buildingConfigs;
-    vector<vector<CreatureConfiguration>*> creatureConfigs;
-    vector<VegetationConfiguration> treeConfigs;
-    vector<VegetationConfiguration> shrubConfigs;
-    vector<VegetationConfiguration> grassConfigs;
-    vector<TerrainConfiguration*> terrainFloorConfigs;
-    vector<TerrainConfiguration*> terrainWallConfigs;
-    vector<ColorConfiguration> colorConfigs;
-    vector<ItemConfiguration*> itemConfigs;
+    std::vector<BuildingConfiguration> buildingConfigs;
+    std::vector<std::vector<CreatureConfiguration>*> creatureConfigs;
+    std::vector<VegetationConfiguration> treeConfigs;
+    std::vector<VegetationConfiguration> shrubConfigs;
+    std::vector<VegetationConfiguration> grassConfigs;
+    std::vector<TerrainConfiguration*> terrainFloorConfigs;
+    std::vector<TerrainConfiguration*> terrainWallConfigs;
+    std::vector<ColorConfiguration> colorConfigs;
+    MaterialMatcher<ALLEGRO_COLOR> materialColorConfigs;
+    MaterialMatcher<c_sprite> growthTopConfigs;
+    MaterialMatcher<c_sprite> growthBottomConfigs;
+    std::vector<ItemConfiguration*> itemConfigs;
     FluidConfiguration lava[8];
     FluidConfiguration water[8];
 
     //race.caste.hairtype.styletype
-    vector<vector<vector<int32_t>*>*> style_indices;
-    vector<vector<int32_t>*> position_Indices;
+    std::vector<std::vector<std::vector<int32_t>*>*> style_indices;
+    std::vector<std::vector<int32_t>*> position_Indices;
 
-    vector<string> professionStrings;
+    RemoteFortressReader::MaterialList materialNameList;
+    RemoteFortressReader::MaterialList growthNameList;
+    RemoteFortressReader::TiletypeList tiletypeNameList;
+    std::vector<std::string> professionStrings;
     std::map <uint32_t, std::string> custom_workshop_types;
     DFHack::Materials * Mats;
     std::vector<t_matgloss> organic;

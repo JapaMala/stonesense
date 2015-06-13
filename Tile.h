@@ -4,6 +4,8 @@
 #include "SpriteObjects.h"
 #include "TileTypes.h"
 #include "df/item_type.h"
+#include "df/plant_tree_tile.h"
+#include "RemoteFortressReader.pb.h"
 #include <vector>
 
 class WorldSegment;
@@ -14,8 +16,8 @@ private:
     bool valid;
 
     //Functions start here.
-    
-	//do not directly call constructor or deconstructor, use CleanCreateAndValidate or InvalidateAndDestroy
+
+    //do not directly call constructor or deconstructor, use CleanCreateAndValidate or InvalidateAndDestroy
     Tile(WorldSegment* ownerSegment, df::tiletype type);
     ~Tile(void);
 
@@ -52,14 +54,15 @@ public:
 
     //DFHack::t_matglossPair water;//contained in designation
     bool deepwater;
-    
-	df::tile_liquid_flow_dir flow_direction;
+
+    df::tile_liquid_flow_dir flow_direction;
 
     DFHack::t_designation designation;
     DFHack::t_occupancy occ;
 
     SS_Unit * creature;
     DFHack::t_matglossPair tree;
+    df::plant_tree_tile tree_tile;
 
     uint8_t mudlevel;
     uint8_t snowlevel;
@@ -84,15 +87,15 @@ public:
         df::flow_type type;
     } tileeffect;
 
-	SS_Item Item;
+    SS_Item Item;
 
     struct SS_Building {
         DFHack::Buildings::t_building* info;
         df::building_type type;
         std::vector<c_sprite> sprites;
         Tile* parent;
-		std::vector<worn_item> constructed_mats;
-		uint8_t special;
+        std::vector<worn_item> constructed_mats;
+        uint8_t special;
     } building;
 
     //tile information loading
@@ -101,26 +104,17 @@ public:
         return DFHack::tileShapeBasic(DFHack::tileShape(tileType));
     }
 
-    inline df::tiletype_shape tileShape()
-    {
-        return DFHack::tileShape(tileType);
-    }
+    void DrawGrowth(c_sprite * spriteobject, bool top);
 
-    inline df::tiletype_special tileSpecial()
-    {
-        return DFHack::tileSpecial(tileType);
-    }
 
-    inline df::tiletype_material tileMaterial()
-    {
-        return DFHack::tileMaterial(tileType);
-    }
-
+    RemoteFortressReader::TiletypeShape tileShape();
+    RemoteFortressReader::TiletypeSpecial tileSpecial();
+    RemoteFortressReader::TiletypeMaterial tileMaterial();
     //tile sprite assembly and drawing functions
-	void GetDrawLocation(int32_t& drawx, int32_t& drawy);
+    void GetDrawLocation(int32_t& drawx, int32_t& drawy);
     void AssembleTile();
     void AddRamptop();
-	void AssembleDesignationMarker( int32_t drawx, int32_t drawy );
+    void AssembleDesignationMarker( int32_t drawx, int32_t drawy );
     void AssembleFloorBlood ( int32_t drawx, int32_t drawy );
     void AssembleParticleCloud(int count, float centerX, float centerY, float rangeX, float rangeY, ALLEGRO_BITMAP *sprite, ALLEGRO_COLOR tint);
     void AssembleSpriteFromSheet(int spriteNum, ALLEGRO_BITMAP* spriteSheet, ALLEGRO_COLOR color, float x, float y, Tile * b=NULL, float in_scale=1.0f);
@@ -129,7 +123,7 @@ public:
     bool IsValid();
     bool Invalidate();
     static bool InvalidateAndDestroy(Tile*);
-	static bool CleanCreateAndValidate(Tile*, WorldSegment*, df::tiletype);
+    static bool CleanCreateAndValidate(Tile*, WorldSegment*, df::tiletype);
 };
 
 void createEffectSprites();
@@ -161,5 +155,5 @@ inline bool IDhasOpaqueFloor(int in)
 
 inline bool IDhasOpaqueSides(int in)
 {
-    return (!FlowPassable( (tiletype::tiletype) in )) && in != tiletype::Tree;
+    return (!FlowPassable( (tiletype::tiletype) in ));
 }

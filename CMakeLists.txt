@@ -31,10 +31,15 @@ SET(PROJECT_SRCS
     SpriteColors.cpp
     SpriteMaps.cpp
     SpriteObjects.cpp
+	TreeGrowthConfiguration.cpp
     UserInput.cpp
     WorldSegment.cpp
     VegetationConfiguration.cpp
     Keybinds.cpp
+	EnumToString.cpp
+	MaterialMatcher.cpp
+	TiletypeMatcher.cpp
+	ConnectionState.cpp
     main.cpp
 )
 
@@ -45,13 +50,14 @@ IF(UNIX)
 		IF(STONESENSE_INTERNAL_DYLIB)
 			FILE(DOWNLOAD http://topazgryphon.org/~tcollett/df/allegro-osx.tar.bz2
 						  ${stonesense_SOURCE_DIR}/allegro-osx.tar.bz2
-						  EXPECTED_MD5 5637cc4ab5dc90f29de7788cb07a6e9e)
+						  EXPECTED_MD5 9f41ef3f3be8094100316ecbda1c607c)
 			execute_process(COMMAND tar xjf ${stonesense_SOURCE_DIR}/allegro-osx.tar.bz2
 							WORKING_DIRECTORY ${stonesense_SOURCE_DIR})
 			SET(PROJECT_LIBS
 				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro.5.0.dylib
 				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro_primitives.5.0.dylib
 				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro_font.5.0.dylib
+				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro_color.5.0.dylib
 				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro_image.5.0.dylib
 				${stonesense_SOURCE_DIR}/allegro-osx/lib/liballegro_ttf.5.0.dylib
 				${PROJECT_LIBS}
@@ -69,6 +75,7 @@ IF(UNIX)
 				allegro
 				allegro_primitives
 				allegro_font
+				allegro_color
 				allegro_image
 				allegro_ttf
 				${PROJECT_LIBS}
@@ -89,6 +96,7 @@ IF(UNIX)
 				${stonesense_SOURCE_DIR}/allegro/lib/liballegro_font.so.5.0
 				${stonesense_SOURCE_DIR}/allegro/lib/liballegro_image.so.5.0
 				${stonesense_SOURCE_DIR}/allegro/lib/liballegro_ttf.so.5.0
+				${stonesense_SOURCE_DIR}/allegro/lib/liballegro_color.so.5.0
 				${PROJECT_LIBS}
 			)
 			include_directories (
@@ -106,6 +114,7 @@ IF(UNIX)
 				allegro_font
 				allegro_image
 				allegro_ttf
+				allegro_color
 				${PROJECT_LIBS}
 			)
 		ENDIF()
@@ -134,6 +143,7 @@ ELSE(UNIX)
         allegro_font-static.lib
         allegro_image-static.lib
         allegro_ttf-static.lib
+		allegro_color-static.lib
         freetype-static.lib
         winmm.lib
         psapi.lib
@@ -152,7 +162,19 @@ ELSE(UNIX)
         ${stonesense_SOURCE_DIR}/allegrow/lib
     )
 ENDIF(UNIX)
+# Tell CMake the source won't be available until build time.
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/../proto/RemoteFortressReader.pb.cc PROPERTIES GENERATED 1)
+
+SET(PROJECT_SRCS ${PROJECT_SRCS} ${CMAKE_CURRENT_SOURCE_DIR}/../proto/RemoteFortressReader.pb.cc)
+
 DFHACK_PLUGIN(stonesense ${PROJECT_SRCS} LINK_LIBRARIES dfhack-tinyxml ${PROJECT_LIBS})
+
+# Make sure the source is generated before the executable builds.
+ADD_DEPENDENCIES(stonesense generate_proto)
+
+TARGET_LINK_LIBRARIES(stonesense protobuf-lite ${PROJECT_LIBS})
+
+
 IF(APPLE)
 	add_custom_command(TARGET stonesense POST_BUILD COMMAND ${stonesense_SOURCE_DIR}/fix-libs-stonesense.sh WORKING_DIRECTORY . COMMENT "Fixing Stonesense library dependencies...")
 ENDIF(APPLE)
@@ -162,4 +184,4 @@ install(DIRECTORY resources/
         PATTERN "CVS" EXCLUDE
         PATTERN ".svn" EXCLUDE)
 # install readme
-install(FILES README.txt DESTINATION stonesense)
+install(FILES README.md DESTINATION stonesense)
